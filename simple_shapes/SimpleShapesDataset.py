@@ -161,14 +161,14 @@ composed = transforms.Compose([crop,
                                 #transforms.Normalize((mean,), (SD,))])
 
 #load datasets
-trainset = SimpleShapesDataset(csv_file = '/home/josh/ML/simple_shapes/train/root/testFile.csv',
-                                root_dir = "/home/josh/ML/simple_shapes/train/root",
+trainset = SimpleShapesDataset(csv_file = './train/testFile.csv',
+                                root_dir = "./train",
                                 transform = composed)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size_train,
                                           shuffle=True)
 
-testset = SimpleShapesDataset(csv_file = '/home/josh/ML/simple_shapes/test/root/testFile.csv',
-                                root_dir = "/home/josh/ML/simple_shapes/test/root",
+testset = SimpleShapesDataset(csv_file = './test/testFile.csv',
+                                root_dir = "./test",
                                 transform = composed)
 
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size_test,
