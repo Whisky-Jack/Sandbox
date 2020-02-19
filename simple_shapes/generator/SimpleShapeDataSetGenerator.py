@@ -9,8 +9,8 @@ from PIL import Image
 
 num_copies = 5
 
-curr_dir = "."
-dest_dir = "../test"
+img_dir = "./samples"
+dest_dir = "../train"
 #"../train"
 
 
@@ -63,7 +63,7 @@ for i in range(0, len(cat_names)):
     #Loop through, duplicating the image, inserting in its subfolder
     #and copying its labels to the csv
     for idx in range(1, num_copies):
-        old_path = os.path.join(curr_dir, img_name + ".png")
+        old_path = os.path.join(img_dir, img_name + ".png")
         new_path = os.path.join(dir, img_name + str(idx) + ".jpg")
 
         image = Image.open(old_path)
