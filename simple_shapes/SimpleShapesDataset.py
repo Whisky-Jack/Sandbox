@@ -41,8 +41,9 @@ class SimpleShapesDataset(Dataset):
         #print(type(labels))
         #print(labels)
         #input()
-        labels = labels.tolist()#np.array([labels])
-        #print(type(labels))
+        labels = np.array(labels, dtype=np.float16) #
+        print(type(labels))
+        print(labels)
         #print(labels)
         #input()
         #labels = labels.astype('object').reshape(-1, 2)
@@ -53,8 +54,36 @@ class SimpleShapesDataset(Dataset):
 
         return sample
 
+"""
+simple_shapes_dataset = SimpleShapesDataset(csv_file='./train/testFile.csv', root_dir = "./train",)
+
+fig = plt.figure()
+
+def imshow(img):
+    #npimg = img.numpy()
+    plt.imshow(img)
+
+for i in range(len(simple_shapes_dataset)):
+    sample = simple_shapes_dataset[i]
+    print(type(sample['image']))
+    print(sample['image'].shape)
+
+    print(i, sample['image'].shape, sample['labels'].shape)
+
+    ax = plt.subplot(1, 4, i + 1)
+    plt.tight_layout()
+    ax.set_title('Sample #{}'.format(i))
+    ax.axis('off')
+    imshow(sample['image'])
+
+
+    if i == 3:
+        plt.show()
+        break
+"""
 class Rescale(object):
-    """Rescale the image in a sample to a given size.
+    """
+    Rescale the image in a sample to a given size.
 
     Args:
         output_size (tuple or int): Desired output size. If tuple, output is
@@ -86,7 +115,8 @@ class Rescale(object):
 
 
 class RandomCrop(object):
-    """Crop randomly the image in a sample.
+    """
+    Crop randomly the image in a sample.
 
     Args:
         output_size (tuple or int): Desired output size. If int, square crop
@@ -117,29 +147,44 @@ class RandomCrop(object):
 
 
 class ToTensor(object):
-    """Convert ndarrays in sample to Tensors."""
+    """
+    Convert ndarrays in sample to Tensors.
+    """
 
     def __call__(self, sample):
         image, labels = sample['image'], sample['labels']
         # swap color axis because
         # numpy image: H x W x C
         # torch image: C X H X W
-        image = image.transpose((2, 0, 1))
+        image = np.transpose(image, (2, 0, 1))
+        #print(type(labels))
+        #print(labels)
+        #input()
+        return {'image': torch.from_numpy(image).float(),
+                'labels': torch.from_numpy(labels)}
+"""
+class Normalize(object):
+
+    def __call__(self, sample):
+        image, labels = sample['image'], sample['labels']
+        image = transforms.Normalize(mean, SD)
         #print(type(labels))
         #print(labels)
         #input()
         return {'image': torch.from_numpy(image),
-                'labels': labels}#torch.from_numpy(labels)}
+                'labels': labels} #torch.from_numpy(labels)} #
+"""
 ###############################################################
 #helper functions
 ###############################################################
-
+"""
 
 
 
 ###############################################################
 #NEURAL NET SECTION
 ###############################################################
+"""
 #hyperparameters
 n_epochs=2
 batch_size_train=4 #data is returned in batches from the dataloader
@@ -148,17 +193,16 @@ learning_rate = 0.01
 momentum=0.5
 
 
-scale = Rescale(80)
-crop = RandomCrop (40)
-tense = ToTensor()
+#scale = Rescale(80)
+#crop = RandomCrop(40)
+#tense = ToTensor()
 #define operations required to preprocess the data
 mean = [0.5, 0.5, 0.5] #normally this would be computed
 SD = [0.5, 0.5, 0.5] #should also be computed
 
-composed = transforms.Compose([crop,
-                                scale,
-                                tense])#,
-                                #transforms.Normalize((mean,), (SD,))])
+composed = transforms.Compose([RandomCrop(40),
+                                Rescale(80),
+                                ToTensor()])
 
 #load datasets
 trainset = SimpleShapesDataset(csv_file = './train/testFile.csv',
@@ -180,32 +224,25 @@ colour_classes = ("red", "blue", "green")
 #IMAGE SHOWER
 #################################################################
 
-def imshow(img):
-    img = img*SD + mean     # unnormalize
-    npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+def imshow(images):
+    #img = img*SD + mean     # unnormalize
+    im_size = images.size(2)
+    grid_border_size = 2
+    grid = utils.make_grid(images, nrow=3)
+    plt.imshow(grid.numpy().transpose((1, 2, 0)))
     plt.show()
 
 
 # get some random training images
 dataiter = iter(trainloader)
-#print(dataiter)
-#print(dataiter.next())
-images, nextLabels = dataiter.next()
-print(images)
+nextSet = next(dataiter)
+images, nextLabels = nextSet['image'], nextSet['labels']
+#imshow(torchvision.utils.make_grid(images))
 print(nextLabels)
-
-images, nextLabels = dataiter.next()
-print(images)
-print(nextLabels)
-# show images
-imshow(torchvision.utils.make_grid(images))
-# print labels
-#print(' '.join('%5s' % shape_classes[shapes[j]] for j in range(batch_size_train)))
 
 
 #################################################################
-"""
+
 #################################################################
 #DEFINE NEURAL NETWORK
 #################################################################
@@ -217,14 +254,14 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(3, 6, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.fc1 = nn.Linear(16 * 17 * 17, 120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
+        self.fc3 = nn.Linear(84, 2)
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 5 * 5)
+        x = x.view(x.size(0), -1)# 16*17*17)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
@@ -232,6 +269,7 @@ class Net(nn.Module):
 
 
 net = Net()
+net = net.float()
 #################################################################
 
 #define loss and optimization scheme
@@ -250,18 +288,19 @@ test_counter = [i*len(trainloader.dataset) for i in range(n_epochs + 1)]
 #################################################################
 
 for epoch in range(n_epochs):  # loop over the dataset multiple times
-
     running_loss = 0.0
     for i, data in enumerate(trainloader, 0):
         # get the features; data is a list of [features, labels]
-        features, shape, colour = data
+        features, shape, colour = data['image'], data['labels'][0], data['labels'][1]
 
         # zero the parameter gradients
         optimizer.zero_grad()
 
         # forward + backward + optimize
         outputs = net(features)
-        loss = F.nll_loss(outputs, shape, colour)
+        print(outputs.shape)
+        print(data['labels'].shape)
+        loss = F.nll_loss(outputs, data['labels'])#[shape, colour])
         loss.backward()
         optimizer.step()
 
@@ -340,5 +379,3 @@ for i in range(1, len(dataset)):
     if i ==20:
         plt.show()
         break
-
-"""

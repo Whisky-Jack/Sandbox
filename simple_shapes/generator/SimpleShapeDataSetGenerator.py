@@ -10,7 +10,7 @@ from PIL import Image
 num_copies = 5
 
 img_dir = "./samples"
-dest_dir = "../train"
+dest_dir = "../test"
 #"../train"
 
 
@@ -73,6 +73,17 @@ for i in range(0, len(cat_names)):
         file_names.append(new_path)
         shapes.append(cat_names[i][0])
         colours.append(cat_names[i][1])
+idx_to_label = {
+    'circle': 0,
+    'square': 1,
+    'triangle': 2,
+    'red': 3,
+    'green': 4,
+    'blue': 5 
+}
+shapes = list(map(idx_to_label.get, shapes))
+colours = list(map(idx_to_label.get, colours))
+print(type(shapes))
 df = pd.DataFrame(data={"image":file_names, "shapes": shapes, "colours":colours})
 df.to_csv(os.path.join(dest_dir , "./testFile.csv"), sep=",", index=False)
 #dataset is in the form [image_name, shape category, color] as a csv
