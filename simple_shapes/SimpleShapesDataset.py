@@ -41,9 +41,9 @@ class SimpleShapesDataset(Dataset):
         #print(type(labels))
         #print(labels)
         #input()
-        labels = np.array(labels, dtype=np.float32) #
-        print(type(labels))
-        print(labels)
+        labels = np.array(labels, dtype=np.long) #
+        #print(type(labels))
+        #print(labels)
         #print(labels)
         #input()
         #labels = labels.astype('object').reshape(-1, 2)
@@ -186,7 +186,7 @@ class Normalize(object):
 ###############################################################
 """
 #hyperparameters
-n_epochs=2
+n_epochs=150
 batch_size_train=4 #data is returned in batches from the dataloader
 batch_size_test=1000
 learning_rate = 0.01
@@ -257,7 +257,7 @@ class Net(nn.Module):
         self.conv2 = nn.Conv2d(6, 16, 5)
         self.fc1 = nn.Linear(16 * 17 * 17, 120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 2)
+        self.fc3 = nn.Linear(84, 6)
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
@@ -275,7 +275,7 @@ net = net.float()
 
 #define loss and optimization scheme
 optimizer = optim.SGD(net.parameters(), lr=learning_rate, momentum=momentum)
-criterion = nn.BCEWithLogitsLoss() #nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss() # nn.BCEWithLogitsLoss() 
 
 #################################################################
 #arrays for monitoring training
@@ -290,9 +290,10 @@ test_counter = [i*len(trainloader.dataset) for i in range(n_epochs + 1)]
 
 for epoch in range(n_epochs):  # loop over the dataset multiple times
     running_loss = 0.0
+    print(epoch)
     for i, data in enumerate(trainloader, 0):
         # get the features; data is a list of [features, labels]
-        features, shape, colour = data['image'], data['labels'][0], data['labels'][1]
+        features, shape, colour = data['image'], data['labels'][:, 0], data['labels'][:, 1]
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -303,18 +304,20 @@ for epoch in range(n_epochs):  # loop over the dataset multiple times
         #print("yep:")
         #print(outputs.shape)
         #print(data['labels'].shape)
-        loss = criterion(outputs, labels.squeeze(1))#[shape, colour])
+        loss = criterion(outputs, colour)#labels)
+        #print("loss: ", loss)
         loss.backward()
         optimizer.step()
 
         # print statistics
         running_loss += loss.item()
-        if i % 1000 == 999:    # print every 2000 mini-batches
+        if i % 36 == 35: #1000 == 999:    # print every 2000 mini-batches
             print('[%d, %5d] loss: %.3f' %
                   (epoch + 1, i + 1, running_loss / 2000))
             train_losses.append(loss.item())
             train_counter.append(i*batch_size_train + len(trainloader.dataset)*(epoch-1))
             running_loss = 0.0
+    print(running_loss)
 
 print('Finished Training')
 
@@ -340,12 +343,13 @@ net.load_state_dict(torch.load(PATH))
 
 #predict specific examples
 outputs = net(images)
+print(outputs.shape)
 
 _, predicted = torch.max(outputs, 1)
 
 for j in range(batch_size_train):
-    print(predicted[j]) 
-input()
+    print(outputs[j]) 
+#input()
 #print('Predicted: ', ' '.join('%5s' % classes[predicted[j]]
 #                              for j in range(batch_size_train)))
 print("yeet")
@@ -358,33 +362,36 @@ total = 0
 with torch.no_grad():
     for data in testloader:
         images, labels = data['image'], data['labels']
-        print(labels.shape)
+        colour = labels[:, 1]
+        #print(labels.shape)
         outputs = net(images)
         _, predicted = torch.max(outputs.data, 1)
-        print(predicted.shape)
+        #print(predicted.shape)
         total += labels.size(0)
-        correct += (predicted == labels).sum().item()
+        correct += (predicted == colour).sum().item()
 
 print('Accuracy of the network on the 10000 test images: %d %%' % (
     100 * correct / total))
 
-plt.plot(train_counter, train_losses)
-plt.xlabel("Training Example Index")
-plt.ylabel("Loss")
-plt.show()
+#plt.plot(train_counter, train_losses)
+#plt.xlabel("Training Example Index")
+#plt.ylabel("Loss")
+#plt.show()
 #################################################################
 
 
 fig = plt.figure()
 
-for i in range(1, len(dataset)):
-    sample = dataset[i]
+for i in range(1, len(testset)):
+    sample = testset[i]
 
-    print(i, sample['image'].shape, sample['labels'].shape)
+    print(i, sample['image'].shape, sample['labels'][1], predicted[i])
 
     ax = plt.subplot(5, 4, i)
     plt.tight_layout()
-    plt.imshow(sample['image'])
+    image = sample['image']
+    image = np.transpose(image, (2, 1, 0))
+    plt.imshow(image)
 
     if i ==20:
         plt.show()
