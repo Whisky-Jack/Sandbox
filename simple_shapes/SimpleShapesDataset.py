@@ -41,7 +41,7 @@ class SimpleShapesDataset(Dataset):
         #print(type(labels))
         #print(labels)
         #input()
-        labels = np.array(labels, dtype=np.float16) #
+        labels = np.array(labels, dtype=np.float32) #
         print(type(labels))
         print(labels)
         #print(labels)
@@ -238,6 +238,7 @@ dataiter = iter(trainloader)
 nextSet = next(dataiter)
 images, nextLabels = nextSet['image'], nextSet['labels']
 #imshow(torchvision.utils.make_grid(images))
+print('nextLabels')
 print(nextLabels)
 
 
@@ -274,7 +275,7 @@ net = net.float()
 
 #define loss and optimization scheme
 optimizer = optim.SGD(net.parameters(), lr=learning_rate, momentum=momentum)
-#criterion =
+criterion = nn.BCEWithLogitsLoss() #nn.CrossEntropyLoss()
 
 #################################################################
 #arrays for monitoring training
@@ -298,9 +299,11 @@ for epoch in range(n_epochs):  # loop over the dataset multiple times
 
         # forward + backward + optimize
         outputs = net(features)
-        print(outputs.shape)
-        print(data['labels'].shape)
-        loss = F.nll_loss(outputs, data['labels'])#[shape, colour])
+        labels = data['labels']
+        #print("yep:")
+        #print(outputs.shape)
+        #print(data['labels'].shape)
+        loss = criterion(outputs, labels.squeeze(1))#[shape, colour])
         loss.backward()
         optimizer.step()
 
@@ -321,13 +324,15 @@ PATH = './cifar_net.pth'
 torch.save(net.state_dict(), PATH)
 
 
-#evaluate the network on some test data
+# get some random training images
 dataiter = iter(testloader)
-images, labels = dataiter.next()
-
+nextSet = next(dataiter)
+images, labels = nextSet['image'], nextSet['labels']
+for j in range(batch_size_train):
+    print(labels[j]) 
 # print images
-imshow(torchvision.utils.make_grid(images))
-print('GroundTruth: ', ' '.join('%5s' % classes[labels[j]] for j in range(batch_size_train)))
+#imshow(torchvision.utils.make_grid(images))
+#print('GroundTruth: ', ' '.join('%5s' % classes[labels[j]] for j in range(batch_size_train)))
 
 #load model back in
 net = Net()
@@ -338,9 +343,12 @@ outputs = net(images)
 
 _, predicted = torch.max(outputs, 1)
 
-print('Predicted: ', ' '.join('%5s' % classes[predicted[j]]
-                              for j in range(batch_size_train)))
-
+for j in range(batch_size_train):
+    print(predicted[j]) 
+input()
+#print('Predicted: ', ' '.join('%5s' % classes[predicted[j]]
+#                              for j in range(batch_size_train)))
+print("yeet")
 
 #################################################################
 #TESTING
@@ -349,9 +357,11 @@ correct = 0
 total = 0
 with torch.no_grad():
     for data in testloader:
-        images, labels = data
+        images, labels = data['image'], data['labels']
+        print(labels.shape)
         outputs = net(images)
         _, predicted = torch.max(outputs.data, 1)
+        print(predicted.shape)
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
 
