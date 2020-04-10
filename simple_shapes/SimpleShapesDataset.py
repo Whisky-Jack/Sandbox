@@ -323,7 +323,7 @@ print('Finished Training')
 
 #################################################################
 #save model
-PATH = './cifar_net.pth'
+PATH = './shapes_net.pth'
 torch.save(net.state_dict(), PATH)
 
 
